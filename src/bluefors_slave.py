@@ -8,14 +8,16 @@ from slave import Slave
 
 class BlueforsSlave(Slave):
 
-    STATE_MARKERS = {frozenset({'hs-still': '1', 'hs-mc': '1', 'pulsetube': '1'}.items()):
-                                "cooldown_script_started",
+    EVENT_MARKERS = {frozenset({'hs-still': '1', 'hs-mc': '1', 'pulsetube': '1'}.items()):
+                     "Cooldown script started",
                      frozenset({'ext': '0', 'pulsetube': '0', 'v13': '1', 'v9': '0', 'turbo1': '0'}.items()):
-                                "warmup_script_started",
+                     "Warmup script started",
                      frozenset({'pulsetube': '0'}.items()):
-                                "pulsetube_manual_stop",
+                     "Pulsetube manual stop",
                      frozenset({'pulsetube': '1'}.items()):
-                                "pulsetube_manual_start"}
+                     "Pulsetube manual start",
+                     frozenset({"compressor": '1', 'v9': '1', 'v7': '1', 'v6': '1', 'v5': '1'}.items()):
+                     "Condensing script started"}
 
     def __init__(self, nickname, password, server_address, server_port, logs_path):
         self._logs_path = logs_path
@@ -41,7 +43,7 @@ class BlueforsSlave(Slave):
 
             change.pop("datetime")
             try:
-                new_events.append(BlueforsSlave.STATE_MARKERS[frozenset(change.items())])
+                new_events.append(BlueforsSlave.EVENT_MARKERS[frozenset(change.items())])
             except KeyError:
                 pass  # event is not classified as important, no alert
 
