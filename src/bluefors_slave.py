@@ -34,14 +34,20 @@ class BlueforsSlave(Slave):
         while True:
             last_state = self.dict_state(i)
             prelast_state = self.dict_state(i + 1)
-            i += 1
 
-            change = dict(set(last_state.items()) - set(prelast_state.items()))
-            if change["datetime"] <= self._last_event_check_time:
+            if last_state["datetime"] <= self._last_event_check_time:
                 self._last_event_check_time = latest_state_change_time
                 break
 
-            change.pop("datetime")
+            i += 1
+
+            change = dict(set(last_state.items()) - set(prelast_state.items()))
+
+            try:
+                change.pop("datetime")
+            except KeyError:
+                pass  # states had the same timestamp
+
             try:
                 new_events.append(BlueforsSlave.EVENT_MARKERS[frozenset(change.items())])
             except KeyError:
