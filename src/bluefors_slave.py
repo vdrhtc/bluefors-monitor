@@ -8,11 +8,48 @@ from slave import Slave
 
 class BlueforsSlave(Slave):
 
+    STATE_MARKERS = {frozenset({'hs-still': '1', 'hs-mc': '1', 'pulsetube': '1'}.items()):
+                                "cooldown_script_started",
+                     frozenset({'ext': '0', 'pulsetube': '0', 'v13': '1', 'v9': '0', 'turbo1': '0'}.items()):
+                                "warmup_script_started",
+                     frozenset({'pulsetube': '0'}.items()):
+                                "pulsetube_manual_stop",
+                     frozenset({'pulsetube': '1'}.items()):
+                                "pulsetube_manual_start"}
+
     def __init__(self, nickname, password, server_address, server_port, logs_path):
         self._logs_path = logs_path
+        self._last_event_check_time = datetime.now()
         super().__init__(nickname, password, server_address, server_port)
 
-    def generate_info_message(self):
+    def generate_alert_messages(self):
+
+        new_events = []
+        i = 0
+
+        latest_state_change_time = self.dict_state(i)["datetime"]
+
+        while True:
+            last_state = self.dict_state(i)
+            prelast_state = self.dict_state(i + 1)
+            i += 1
+
+            change = dict(set(last_state.items()) - set(prelast_state.items()))
+            if change["datetime"] <= self._last_event_check_time:
+                self._last_event_check_time = latest_state_change_time
+                break
+
+            change.pop("datetime")
+            try:
+                new_events.append(BlueforsSlave.STATE_MARKERS[frozenset(change.items())])
+            except KeyError:
+                pass  # event is not classified as important, no alert
+
+        return new_events
+
+
+
+    def generate_state_message(self):
         on_off = {"0": "⚪️", "1": "🔵", "2": '🌕'}
 
         ######### Status
@@ -79,6 +116,13 @@ class BlueforsSlave(Slave):
         statuses = list(csv.reader(statuses))
 
         return statuses[-1]
+
+    def dict_state(self, depth):
+        raw_state = self.get_state(depth)
+        state_time = datetime.strptime(raw_state[0] + " " + raw_state[1], "%d-%m-%y %H:%M:%S")
+        dict_state = dict(reshape(raw_state[3:], (-1, 2)))
+        dict_state["datetime"] = state_time
+        return dict_state
 
     def get_state(self, depth):
         logs_path = self._logs_path
