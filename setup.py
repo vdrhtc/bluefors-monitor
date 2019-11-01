@@ -4,7 +4,7 @@ setuptools.setup(
     name="bluefors_slave",
     py_modules=["bluefors_slave"],
     install_requires=["overseer_slave","loggingserver"],
-    version="1.0b2",
+    version="1.0b3",
     author="Gleb Fedorov",
     author_email="vdrhtc@gmail.com",
     description="Bluefors interface for the Overseer",

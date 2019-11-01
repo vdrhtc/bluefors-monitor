@@ -7,17 +7,16 @@ from slave import Slave
 
 
 class BlueforsSlave(Slave):
-
     EVENT_MARKERS = {frozenset({'hs-still': '1', 'hs-mc': '1', 'pulsetube': '1'}.items()):
-                     "Cooldown script started",
+                         "Cooldown script started",
                      frozenset({'ext': '0', 'pulsetube': '0', 'v13': '1', 'v9': '0', 'turbo1': '0'}.items()):
-                     "Warmup script started",
+                         "Warmup script started",
                      frozenset({'pulsetube': '0'}.items()):
-                     "Pulsetube manual stop",
+                         "Pulsetube manual stop",
                      frozenset({'pulsetube': '1'}.items()):
-                     "Pulsetube manual start",
+                         "Pulsetube manual start",
                      frozenset({"compressor": '1', 'v9': '1', 'v7': '1', 'v6': '1', 'v5': '1'}.items()):
-                     "Condensing script started"}
+                         "Condensing script started"}
 
     def __init__(self, nickname, password, server_address, server_port, logs_path):
         self._logs_path = logs_path
@@ -55,22 +54,36 @@ class BlueforsSlave(Slave):
 
         return new_events
 
-
-
     def generate_state_message(self):
         on_off = {"0": "⚪️", "1": "🔵", "2": '🌕'}
 
         ######### Status
         last_state_dict = dict(reshape(self.get_state(0)[3:], (-1, 2)))
         status_dict = dict(reshape(self.get_status()[2:], (-1, 2)))
-        if (last_state_dict["pulsetube"] == "1") + (
-                (float(status_dict['cptempwo']) - float(status_dict['cptempwi'])) > 13) == 1:
-            # observables contradict
-            last_state_dict["pulsetube"] = "2"
 
-        if (last_state_dict["turbo1"] == "1") + (float(status_dict["tc400setspdatt"]) == 1) == 1:
-            # observables contradict
-            last_state_dict["turbo1"] = "2"
+        wo_variants = ["cptempwo", "cpatempwo", "stub"]
+        wi_variants = ["cptempwi", "cpatempwi", "stub"]
+
+        if "cptempwo" in status_dict:
+            variant = 0
+        elif "cpatempwo" in status_dict:
+            variant = 1
+        else:
+            variant = -1
+
+        try:
+            if (last_state_dict["pulsetube"] == "1") + (
+                    (float(status_dict[wo_variants[variant]]) - \
+                     float(status_dict[wi_variants[variant]])) > 13) == 1:
+                # observables contradict
+                last_state_dict["pulsetube"] = "2"
+
+            if (last_state_dict["turbo1"] == "1") + (float(status_dict["tc400setspdatt"]) == 1) == 1:
+                # observables contradict
+                last_state_dict["turbo1"] = "2"
+
+        except KeyError:
+            pass
 
         main_keys = ["scroll1", "scroll2", "turbo1", "compressor", "pulsetube"]
         main_names = ["scr1 scr2 tur1 comp pt"]
@@ -96,7 +109,7 @@ class BlueforsSlave(Slave):
         pressures_string = "`" + "\n".join("{0:>6s}: {1:15s}".format(name, self.format_unicode_sci(pressure) + " mBar")
                                            for name, pressure in zip(pressure_names, pressures)) + "`"
 
-        message = "%s\n%s @ BF LD250" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), self._nickname)
+        message = "%s @ BF LD250" % (self._nickname)
         message += "\n\nCurrent state:\n" + state_string
         message += "\n\nLast change (" + self.format_timedelta(time_since_last_change) + " ago):\n" + changes_string
         message += "\n\nTemperatures:\n" + temp_string
@@ -188,6 +201,8 @@ class BlueforsSlave(Slave):
 
         p_names[0] = "Сan"
         p_names[1] = "Turbo"
+        p_names[2] = "P3"
+        p_names[3] = "P4"
         p_names[4] = "Tank"
         p_names[5] = "Vent"
         return p_names, p_vals
@@ -228,9 +243,9 @@ class BlueforsSlave(Slave):
     def format_timedelta(td):
         s = td.total_seconds()
 
-        days = s//(3600*24)
+        days = s // (3600 * 24)
         if days >= 2:
-            return "%sd"%int(days)
+            return "%sd" % int(days)
 
         hours, remainder = divmod(s, 3600)
         minutes, seconds = divmod(remainder, 60)
