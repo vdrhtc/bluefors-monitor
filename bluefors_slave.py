@@ -11,6 +11,8 @@ class BlueforsSlave(Slave):
                          "Cooldown script started",
                      frozenset({'ext': '0', 'pulsetube': '0', 'v13': '1', 'v9': '0', 'turbo1': '0'}.items()):
                          "Warmup script started",
+                     frozenset({'pulsetube': '0', 'v13': '1', 'v9': '0', 'turbo1': '0'}.items()):
+                         "Warmup script started",
                      frozenset({'pulsetube': '0'}.items()):
                          "Pulsetube manual stop",
                      frozenset({'pulsetube': '1'}.items()):
